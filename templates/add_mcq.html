@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Add MCQs{% endblock %}
+
+{% block content %}
+
+    <div class="dark-card">
+        <h2>Add New MCQ Set</h2>
+        <p style="color: #aaa; margin-top: 0;">Paste your JSON data below, including a "title".</p>
+
+        <form method="POST">
+            <div class="dark-form-group">
+                <label for="json_data" class="dark-label">JSON Data</label>
+                <textarea name="json_data" id="json_data" class="dark-textarea" placeholder='{ "title": "...", "questions": [ ... ] }' required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Add & Start Exam</button>
+        </form>
+    </div>
+
+{% endblock %}
+

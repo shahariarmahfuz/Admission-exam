@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}MCQ Home{% endblock %}
+
+{% block content %}
+
+    <!-- সব MCQ একসাথে পরীক্ষা দেওয়ার বাটন -->
+    {% if total_questions > 0 %}
+    <div class="dark-card">
+        <h2><i class="fa-solid fa-earth-americas"></i> All Questions</h2>
+        <p style="color: #aaa; margin-top: 0;">Total {{ total_questions }} questions available.</p>
+        <a href="{{ url_for('start_exam_all') }}" class="btn btn-success">
+            <i class="fa-solid fa-play"></i> Start Combined Exam (Random)
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- নতুন MCQ যোগ করার বাটন -->
+    <div class="dark-card">
+        <h2><i class="fa-solid fa-plus"></i> Add New Set</h2>
+        <a href="{{ url_for('add_mcq') }}" class="btn btn-primary" style="width: 100%;">
+             Add Questions
+        </a>
+    </div>
+
+    <!-- আলাদা আলাদা সেট -->
+    <h2 style="color: #ffffff; font-size: 1.3rem; margin-top: 30px;">Available Exam Sets</h2>
+
+    {% if all_sets %}
+        <ul class="dark-list">
+            {% for set in all_sets %}
+                <li class="dark-list-item">
+                    <!-- সেটের তথ্য -->
+                    <div>
+                        <strong>{{ set.title }}</strong>
+                        <small style="display: block; color: #aaa;">({{ set.questions|length }} questions)</small>
+                    </div>
+                    <!-- বাটন গ্রুপ -->
+                    <div class="list-item-actions">
+                        <button class="btn btn-danger" onclick="openModal('deleteModal-{{ set.id }}')">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                        <button class="btn btn-primary" onclick="openModal('startModal-{{ set.id }}')">
+                            Start <i class="fa-solid fa-play"></i>
+                        </button>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="alert alert-info">
+            No exam sets found. Add some questions!
+        </div>
+    {% endif %}
+
+
+<!-- === মডাল সেকশন (লুপের বাইরে) === -->
+{% for set in all_sets %}
+
+    <!-- ১. পরীক্ষা শুরু করার মডাল -->
+    <div class="modal-backdrop" id="startModal-{{ set.id }}">
+        <div class="modal">
+            <form method="POST" action="{{ url_for('start_exam_set', set_id=set.id) }}">
+                <div class="modal-header">
+                    <h3>Exam Options: {{ set.title }}</h3>
+                    <button type="button" class="modal-close-btn" onclick="closeModal('startModal-{{ set.id }}')">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- অপশন: অর্ডার -->
+                    <div class="dark-form-group">
+                        <label class="dark-label">Order (অর্ডার)</label>
+                        <div class="dark-radio-group">
+                            <label><input type="radio" name="mode" value="sequential" checked> Sequential (ধারাবাহিক)</label>
+                            <label><input type="radio" name="mode" value="random"> Random (এলোমেলো)</label>
+                        </div>
+                    </div>
+
+                    <hr style="border-color: #222; margin: 10px 0;">
+
+                    <!-- অপশন: ধরণ -->
+                    <div class="dark-form-group">
+                        <label class="dark-label">Amount (পরিমাণ)</label>
+                        <div class="dark-radio-group">
+                            <label>
+                                <input type="radio" name="exam_type" value="all" checked onchange="toggleInputs({{ set.id }}, 'all')"> 
+                                All (সব)
+                            </label>
+                            <label>
+                                <input type="radio" name="exam_type" value="number" onchange="toggleInputs({{ set.id }}, 'number')"> 
+                                Number (সংখ্যা)
+                            </label>
+                            <label>
+                                <input type="radio" name="exam_type" value="range" onchange="toggleInputs({{ set.id }}, 'range')"> 
+                                Range (রেঞ্জ)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- নির্দিষ্ট সংখ্যার ইনপুট (ডিফল্ট হাইড) -->
+                    <div class="dark-form-group" id="numberInput-{{ set.id }}" style="display: none;">
+                        <label class="dark-label" for="number-{{ set.id }}">How many questions? (Max: {{ set.questions|length }})</label>
+                        <input type="number" name="number_input" id="number-{{ set.id }}" class="dark-input" placeholder="e.g., 20">
+                    </div>
+
+                    <!-- রেঞ্জ ইনপুট (ডিফল্ট হাইড) -->
+                    <div class="dark-form-group" id="rangeInput-{{ set.id }}" style="display: none;">
+                        <label class="dark-label" for="range-{{ set.id }}">Enter range (e.g., 23-34)</label>
+                        <input type="text" name="range_input" id="range-{{ set.id }}" class="dark-input" placeholder="e.g., 23-34">
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('startModal-{{ set.id }}')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Begin Exam</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ২. ডিলিট কনফার্মেশন মডাল -->
+    <div class="modal-backdrop" id="deleteModal-{{ set.id }}">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Confirm Deletion</h3>
+                <button type="button" class="modal-close-btn" onclick="closeModal('deleteModal-{{ set.id }}')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the set: <strong>"{{ set.title }}"</strong>?</p>
+                <p style="color: #FF0000;">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteModal-{{ set.id }}')">Cancel</button>
+                <form method="POST" action="{{ url_for('delete_set', set_id=set.id) }}">
+                    <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+<!-- === মডাল সেকশন শেষ === -->
+
+
+<!-- === জাভাস্ক্রিপ্ট (মডাল কন্ট্রোল) === -->
+<script>
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('show');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    }
+
+    function toggleInputs(setId, type) {
+        const numberInput = document.getElementById('numberInput-' + setId);
+        const rangeInput = document.getElementById('rangeInput-' + setId);
+
+        if (type === 'number') {
+            numberInput.style.display = 'block';
+            rangeInput.style.display = 'none';
+        } else if (type === 'range') {
+            numberInput.style.display = 'none';
+            rangeInput.style.display = 'block';
+        } else { // 'all'
+            numberInput.style.display = 'none';
+            rangeInput.style.display = 'none';
+        }
+    }
+
+    // মডালের বাইরে ক্লিক করলে বন্ধ করার জন্য (ঐচ্ছিক)
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal-backdrop')) {
+            event.target.classList.remove('show');
+        }
+    }
+</script>
+
+{% endblock %}
+
+

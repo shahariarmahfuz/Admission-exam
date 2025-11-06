@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>পরীক্ষা - প্রশ্ন {{ q_index + 1 }}</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #000000; color: #e0e0e0;
+      display: flex; flex-direction: column; align-items: center; 
+      min-height: 100vh; margin: 0; padding: 20px 0; 
+    }
+    .score-container {
+      background-color: #000000; border: 1px solid #222; border-radius: 10px;
+      width: 90%; max-width: 600px; padding: 10px 15px; margin-bottom: 15px; 
+      display: flex; justify-content: space-between; align-items: center;
+      color: #aaa; font-size: 14px; font-weight: 600;
+    }
+    .mcq-container {
+      background-color: #000000; border-radius: 10px; border: 1px solid #222; 
+      width: 90%; max-width: 600px; padding: 15px; 
+    }
+    .question {
+      font-size: 16px; font-weight: 600; color: #ffffff; margin-bottom: 0; 
+    }
+    .options-list { padding: 0; margin-top: 0; margin-bottom: 0; }
+    .option {
+      appearance: none; text-align: left; width: 100%;
+      background-color: #000000; border-radius: 8px; border: 1px solid #333; 
+      padding: 8px 12px; margin-bottom: 8px; font-size: 15px; 
+      cursor: pointer; transition: all 0.3s ease;
+      display: flex; align-items: center; color: #e0e0e0;
+    }
+    .option:last-child { margin-bottom: 0; }
+    .option:not(:disabled):hover { background-color: #191919; }
+    .icon-container {
+      margin-right: 10px; font-size: 16px; width: 16px; text-align: center;
+    }
+    .icon-container .default-icon { display: inline-block; color: #aaa; }
+    .icon-container .correct-icon,
+    .icon-container .incorrect-icon { display: none; }
+
+    .option.correct {
+      background-color: #000000; color: #30c85e; border-color: #30c85e; font-weight: bold;
+    }
+    .option.correct .default-icon { display: none; }
+    .option.correct .correct-icon { display: inline-block; color: #30c85e; }
+
+    .option.incorrect {
+      background-color: #000000; color: #FF0000; border-color: #FF0000; font-weight: bold;
+    }
+    .option.incorrect .default-icon { display: none; }
+    .option.incorrect .incorrect-icon { display: inline-block; color: #FF0000; }
+
+    .option:disabled {
+      pointer-events: none; opacity: 0.7;
+    }
+    .list-disabled .option:not(.correct) { opacity: 0.6; }
+
+    .divider { border: 0; height: 1px; background-color: #333; margin: 15px 0; }
+    .progress-text { font-size: 13px; color: #aaa; text-align: center; }
+
+    /* --- CSS ট্রানজিশন (Smooth Animation) --- */
+    .explanation-box {
+      background-color: #000000; border: 1px solid #333;
+      border-radius: 8px; padding: 10px 12px;
+      font-size: 14px; color: #c0c0c0; line-height: 1.5;
+
+      /* স্মুথ করার জন্য: ডিফল্ট অবস্থা */
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      margin-top: 0;
+      transition: opacity 0.4s ease-out, max-height 0.4s ease-out, margin-top 0.4s ease-out;
+    }
+    .explanation-box.show {
+      /* দেখানোর অবস্থা */
+      opacity: 1;
+      max-height: 500px; /* একটি বড় মান */
+      margin-top: 15px;
+    }
+    .explanation-box strong { color: #30c85e; display: block; margin-bottom: 5px; }
+
+    .next-btn {
+      text-decoration: none; text-align: center;
+      width: 100%; padding: 10px 15px;
+      font-size: 16px; font-weight: 600; color: #007bff;
+      background-color: #000000; border: 1px solid #007bff;
+      border-radius: 8px; cursor: pointer;
+
+      /* স্মুথ করার জন্য: ডিফল্ট অবস্থা */
+      display: block; /* ডিসপ্লে block থাকবে */
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      margin-top: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      border-width: 0;
+      /* ব্যাখ্যা দেখানোর 0.2 সেকেন্ড পর বাটন আসবে */
+      transition: opacity 0.4s ease-out 0.2s, max-height 0.4s ease-out 0.2s, margin-top 0.4s ease-out 0.2s, padding 0.4s ease-out 0.2s, border-width 0.4s ease-out 0.2s;
+    }
+    .next-btn.show {
+      /* দেখানোর অবস্থা */
+      opacity: 1;
+      max-height: 100px;
+      margin-top: 15px;
+      padding-top: 10px;
+      padding-bottom: 10px;
+      border-width: 1px;
+    }
+
+    .next-btn:hover { background-color: #007bff; color: #ffffff; }
+    .next-btn i { margin-left: 8px; }
+  </style>
+</head>
+<body>
+
+  <div class="score-container">
+    <span>সর্বমোট নাম্বার: <span id="total-score">{{ "%.2f"|format(total_score) }}</span></span>
+    <span>সম্ভাব্য পয়েন্ট: <span id="potential-points">{{ "%.2f"|format(potential_points) }}</span></span>
+  </div>
+
+  <div class="mcq-container">
+
+    <h2 class="question">{{ q_index + 1 }}. {{ question.question }}</h2>
+    <hr class="divider">
+
+    <form id="mcq-form">
+      <div class="options-list {% if show_explanation %}list-disabled{% endif %}" id="options-list">
+          {% set options = {'a': question.option_a, 'b': question.option_b, 'c': question.option_c, 'd': question.option_d} %}
+          {% for key, value in options.items() %}
+          <button type="submit" name="option" value="{{ key }}" 
+                  class="option {% if show_explanation and key == question.correct_answer %}correct{% elif key in disabled_options %}incorrect{% endif %}"
+                  {% if key in disabled_options or show_explanation %}disabled{% endif %}>
+
+              <span class="icon-container">
+                  <i class="fa-regular fa-circle default-icon"></i>
+                  <i class="fa-solid fa-circle-check correct-icon"></i>
+                  <i class="fa-solid fa-circle-xmark incorrect-icon"></i>
+              </span>
+              <span class="option-text">{{ value }}</span>
+          </button>
+          {% endfor %}
+      </div>
+    </form>
+
+    <!-- ব্যাখ্যা বক্স (Jinja দিয়ে .show ক্লাস যোগ করা হয়েছে) -->
+    <div class="explanation-box {% if show_explanation %}show{% endif %}" id="explanation-box">
+      <strong>ব্যাখ্যা:</strong> <span id="explanation-text">{{ question.explanation | safe }}</span>
+    </div>
+
+    <hr class="divider">
+
+    <div class="progress-text">
+      {{ total_questions }} টি থেকে {{ q_index + 1 }} নং প্রশ্নে রয়েছেন
+    </div>
+
+    <!-- নেক্সট বাটন (Jinja দিয়ে .show ক্লাস যোগ করা হয়েছে) -->
+    {% if q_index + 1 >= total_questions %}
+        <a href="{{ url_for('results') }}" class="next-btn {% if show_explanation %}show{% endif %}" id="next-btn">
+            ফলাফল দেখুন <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    {% else %}
+        <a href="{{ url_for('take_exam', q_index=q_index + 1) }}" class="next-btn {% if show_explanation %}show{% endif %}" id="next-btn">
+            পরবর্তী প্রশ্ন <i class="fa-solid fa-arrow-right"></i>
+        </a>
+    {% endif %}
+
+  </div>
+
+  <!-- === জাভাস্ক্রিপ্ট (আপডেট করা) === -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mcqForm = document.getElementById('mcq-form');
+        const optionsList = document.getElementById('options-list');
+        const allOptionButtons = optionsList.querySelectorAll('.option');
+
+        const totalScoreEl = document.getElementById('total-score');
+        const potentialPointsEl = document.getElementById('potential-points');
+        const explanationBoxEl = document.getElementById('explanation-box');
+        const explanationTextEl = document.getElementById('explanation-text');
+        const nextButtonEl = document.getElementById('next-btn');
+
+        mcqForm.addEventListener('submit', function(event) {
+            event.preventDefault(); 
+
+            const clickedButton = event.submitter;
+            const formData = new FormData();
+            formData.append('option', clickedButton.value);
+
+            allOptionButtons.forEach(btn => btn.disabled = true);
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+
+                totalScoreEl.innerText = data.total_score.toFixed(2);
+                potentialPointsEl.innerText = data.potential_points.toFixed(2);
+
+                if (data.status === 'correct') {
+                    clickedButton.classList.add('correct');
+                    optionsList.classList.add('list-disabled');
+
+                    explanationTextEl.innerHTML = data.explanation;
+                    // --- পরিবর্তন: স্মুথলি দেখানোর জন্য .show ক্লাস যোগ ---
+                    explanationBoxEl.classList.add('show');
+                    nextButtonEl.classList.add('show');
+
+                } else if (data.status === 'incorrect') {
+                    clickedButton.classList.add('incorrect');
+
+                    // শুধু ভুল বাটনটি বাদে বাকিগুলো আবার এনাবল করা
+                    allOptionButtons.forEach(btn => {
+                        if (!btn.classList.contains('incorrect')) {
+                            btn.disabled = false;
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // কোনো এরর হলে ইউজারকে জানানো (ঐচ্ছিক)
+            });
+        });
+    });
+  </script>
+
+</body>
+</html>
+
+

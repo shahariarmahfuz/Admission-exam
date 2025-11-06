@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Exam Results{% endblock %}
+
+{% block content %}
+
+    <!-- === নতুন গণনা ব্লক (Jinja Logic) === -->
+    {% set total_questions = full_results|length %}
+    {% set max_possible_score = total_questions * 1.50 %}
+
+    <!-- সঠিক উত্তরের সংখ্যা গণনার জন্য ভেরিয়েবল সেট করা -->
+    {% set correct_counter = namespace(count=0) %}
+
+    {% for item in full_results %}
+        <!-- আমরা 'সঠিক' হিসেবে ধরছি যদি কোনো প্রশ্ন থেকে > 0 পয়েন্ট পায় -->
+        {% if item.result.points > 0 %}
+            {% set correct_counter.count = correct_counter.count + 1 %}
+        {% endif %}
+    {% endfor %}
+
+    {% set correct_count = correct_counter.count %}
+    {% set wrong_count = total_questions - correct_count %}
+
+    <!-- ০ দিয়ে ভাগ এড়ানোর জন্য (যদি কোনো প্রশ্ন না থাকে) -->
+    {% if total_questions > 0 %}
+        {% set correct_rate = (correct_count / total_questions) * 100 %}
+        {% set wrong_rate = (wrong_count / total_questions) * 100 %}
+    {% else %}
+        {% set correct_rate = 0 %}
+        {% set wrong_rate = 0 %}
+    {% endif %}
+    <!-- === গণনা ব্লক শেষ === -->
+
+
+    <!-- === নতুন স্কোরকার্ড === -->
+    <div class="dark-card">
+        <h2 style="color: #30c85e; text-align: center; margin-top: 0;">Exam Finished!</h2>
+
+        <hr style="border: 0; height: 1px; background-color: #333; margin: 15px 0;">
+
+        <!-- নতুন পরিসংখ্যান লিস্ট -->
+        <div style="font-size: 16px; line-height: 2;">
+
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #aaa;">সর্বমোট পয়েন্ট (Max Possible):</span>
+                <span style="font-weight: 600;">{{ "%.2f"|format(max_possible_score) }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #aaa;">আপনার স্কোর (Your Score):</span>
+                <span style="font-weight: 600; color: #30c85e; font-size: 1.1rem;">{{ "%.2f"|format(total_score) }}</span>
+            </div>
+
+            <hr style="border: 0; height: 1px; background-color: #222; margin: 10px 0;">
+
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #aaa;">সঠিক রেট (Correct Rate):</span>
+                <span style="font-weight: 600; color: #30c85e;">{{ "%.1f"|format(correct_rate) }}%</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between;">
+                <span style="color: #aaa;">ভুল রেট (Wrong Rate):</span>
+                <span style="font-weight: 600; color: #FF0000;">{{ "%.1f"|format(wrong_rate) }}%</span>
+            </div>
+        </div>
+    </div>
+    <!-- === নতুন স্কোরকার্ড শেষ === -->
+
+
+    <!-- === বিস্তারিত ফলাফল (আগের মতোই) === -->
+    <h2 style="color: #ffffff; font-size: 1.3rem; margin-top: 30px;">Detailed Results</h2>
+
+    {% for item in full_results %}
+        <div class="dark-card">
+            <h4 style="color: #ffffff; margin-top: 0; margin-bottom: 10px; font-size: 1rem;">{{ loop.index }}. {{ item.question.question }}</h4>
+
+            <!-- ফলাফল অনুযায়ী ব্যাজ -->
+            {% if item.result.points == 1.50 %}
+                <span style="font-size: 12px; color: #30c85e; border: 1px solid #30c85e; padding: 2px 5px; border-radius: 5px;">First Try Correct (+1.50)</span>
+            {% elif item.result.points > 0 %}
+                <span style="font-size: 12px; color: #ffc400; border: 1px solid #ffc400; padding: 2px 5px; border-radius: 5px;">Correct ({{ item.result.attempts }} attempts) (+{{ "%.2f"|format(item.result.points) }})</span>
+            {% else %}
+                <span style="font-size: 12px; color: #FF0000; border: 1px solid #FF0000; padding: 2px 5px; border-radius: 5px;">Incorrect (+0.00)</span>
+            {% endif %}
+
+            <hr style="border: 0; height: 1px; background-color: #333; margin: 15px 0;">
+
+            <!-- অপশন লিস্ট -->
+            <ul class="dark-list">
+                {% set options = {'a': item.question.option_a, 'b': item.question.option_b, 'c': item.question.option_c, 'd': item.question.option_d} %}
+
+                {% for key, value in options.items() %}
+                    <li class="dark-list-item" 
+                        style="{% if key == item.question.correct_answer %} border-color: #30c85e; color: #30c85e; {% endif %}; margin-bottom: 5px; padding: 8px 12px; justify-content: flex-start;">
+
+                        {% if key == item.question.correct_answer %}
+                            <i class="fa-solid fa-circle-check" style="margin-right: 10px;"></i>
+                        {% else %}
+                             <i class="fa-regular fa-circle" style="margin-right: 10px; color: #555;"></i>
+                        {% endif %}
+
+                        {{ value }}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <!-- ব্যাখ্যা -->
+            {% if item.question.explanation %}
+            <div style="background-color: #0c3d1c; color: #30c85e; border: 1px solid #30c85e; padding: 10px; border-radius: 8px; margin-top: 15px; font-size: 14px;">
+                <strong>Explanation:</strong> {{ item.question.explanation | safe }}
+            </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <div style="text-align: center; margin-bottom: 20px;">
+        <a href="{{ url_for('home') }}" class="btn btn-primary" style="width: 100%;">
+            <i class="fa-solid fa-home"></i> Back to Home
+        </a>
+    </div>
+{% endblock %}
+
+
