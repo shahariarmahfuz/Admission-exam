@@ -162,7 +162,7 @@
 
     <!-- নেক্সট বাটন (Jinja দিয়ে .show ক্লাস যোগ করা হয়েছে) -->
     {% if q_index + 1 >= total_questions %}
-        <a href="{{ url_for('results') }}" class="next-btn {% if show_explanation %}show{% endif %}" id="next-btn">
+        <a href="{{ url_for('process_results') }}" class="next-btn {% if show_explanation %}show{% endif %}" id="next-btn">
             ফলাফল দেখুন <i class="fa-solid fa-arrow-right"></i>
         </a>
     {% else %}
