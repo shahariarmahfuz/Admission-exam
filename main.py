@@ -1,11 +1,22 @@
 import json
-import random # <-- নতুন ইম্পোর্ট
+import random
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_very_secret_key_12345_replit'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mcq_app.db'
+
+# --- ডেটাবেস কনফিগারেশন পরিবর্তন ---
+# পুরনো SQLite URI-কে কমেন্ট আউট করা হলো
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mcq_app.db'
+
+# নতুন PostgreSQL URI যোগ করা হলো
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://templates_8dtu_user:OknsdWCRY1zCLvxnmv19ssSxbTdhA3KP@dpg-d46l10hr0fns73fp0j30-a.oregon-postgres.render.com/templates_8dtu'
+
+# Render-এ অনেক সময় এই সেটিংসটি দরকার হয়
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
+# --- পরিবর্তন শেষ ---
+
 db = SQLAlchemy(app)
 
 # --- ডেটাবেস মডেল (কোনো পরিবর্তন নেই) ---
@@ -17,7 +28,6 @@ class ExamSet(db.Model):
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.String(500), nullable=False)
-    # ... (বাকি কলামগুলো যেমন ছিল)
     option_a = db.Column(db.String(200), nullable=False)
     option_b = db.Column(db.String(200), nullable=False)
     option_c = db.Column(db.String(200), nullable=False)
@@ -27,18 +37,18 @@ class Question(db.Model):
     exam_set_id = db.Column(db.Integer, db.ForeignKey('exam_set.id'), nullable=False)
 
 # --- রুট (Routes) ---
+# (বাকি সব রুট এবং ফাংশন আগের মতোই থাকবে)
 
-## 🏠 হোম পেজ (কোনো পরিবর্তন নেই)
+## 🏠 হোম পেজ
 @app.route('/')
 def home():
     all_sets = ExamSet.query.order_by(ExamSet.id.desc()).all()
     total_questions = Question.query.count()
     return render_template('home.html', all_sets=all_sets, total_questions=total_questions)
 
-## ➕ MCQ অ্যাড পেজ (কোনো পরিবর্তন নেই)
+## ➕ MCQ অ্যাড পেজ
 @app.route('/add', methods=['GET', 'POST'])
 def add_mcq():
-    # ... (এই কোডটি আগের মতোই থাকবে)
     if request.method == 'POST':
         json_data = request.form['json_data']
         try:
@@ -79,10 +89,9 @@ def add_mcq():
     return render_template('add_mcq.html')
 
 
-## 🚀 "Exam All" রুট (কোনো পরিবর্তন নেই)
+## 🚀 "Exam All" রুট
 @app.route('/start_exam_all')
 def start_exam_all():
-    # ... (এই কোডটি আগের মতোই থাকবে)
     all_q_ids = [q.id for q in Question.query.all()]
     if not all_q_ids:
         flash("No questions in the database to start an exam.", "warning")
@@ -110,13 +119,11 @@ def delete_set(set_id):
     return redirect(url_for('home'))
 
 
-## 🚀 নতুন রুট: নির্দিষ্ট সেট পরীক্ষা শুরু (অনেক পরিবর্তন)
+## 🚀 নতুন রুট: নির্দিষ্ট সেট পরীক্ষা শুরু
 @app.route('/start_exam_set/<int:set_id>', methods=['POST'])
 def start_exam_set(set_id):
     exam_set = ExamSet.query.get_or_404(set_id)
 
-    # প্রশ্নগুলোর ID সংগ্রহ করা (অর্ডার ঠিক রেখে)
-    # আমরা Question.id অনুযায়ী অর্ডার করছি ডিফল্ট হিসেবে
     q_ids = [q.id for q in Question.query.filter_by(exam_set_id=set_id).order_by(Question.id).all()]
     total_in_set = len(q_ids)
 
@@ -124,11 +131,9 @@ def start_exam_set(set_id):
         flash("This exam set has no questions.", "warning")
         return redirect(url_for('home'))
 
-    # --- ফর্ম থেকে অপশনগুলো নেওয়া ---
-    mode = request.form.get('mode', 'sequential') # sequential vs random
-    exam_type = request.form.get('exam_type', 'all') # all vs number vs range
+    mode = request.form.get('mode', 'sequential') 
+    exam_type = request.form.get('exam_type', 'all') 
 
-    # --- লজিক ১: রেঞ্জ (Range) অনুযায়ী ফিল্টার ---
     if exam_type == 'range':
         range_input = request.form.get('range_input', '')
         try:
@@ -140,18 +145,15 @@ def start_exam_set(set_id):
                 flash(f"Invalid range. Must be between 1 and {total_in_set}.", "danger")
                 return redirect(url_for('home'))
 
-            # 1-based ইনডেক্স থেকে 0-based ইনডেক্সে রূপান্তর
-            q_ids = q_ids[start-1:end] # e.g., 23-34 means index 22 to 33
+            q_ids = q_ids[start-1:end]
 
         except ValueError:
             flash("Invalid range format. Use 'start-end' (e.g., '23-34').", "danger")
             return redirect(url_for('home'))
 
-    # --- লজিক ২: র‍্যান্ডমাইজ (Shuffle) ---
     if mode == 'random':
         random.shuffle(q_ids)
 
-    # --- লজিক ৩: নির্দিষ্ট সংখ্যা (Number) ---
     if exam_type == 'number':
         try:
             number = int(request.form.get('number_input', '10'))
@@ -159,15 +161,12 @@ def start_exam_set(set_id):
                 flash("Number must be greater than 0.", "danger")
                 return redirect(url_for('home'))
 
-            # যদি র‍্যান্ডম হয়, তাহলে শাফল করা লিস্ট থেকে প্রথম N টি নেবে
-            # যদি র‍্যান্ডম না হয়, তাহলে প্রথম N টি নেবে
             q_ids = q_ids[:number]
 
         except ValueError:
             flash("Invalid number entered.", "danger")
             return redirect(url_for('home'))
 
-    # --- পরীক্ষা শুরু করা ---
     session.clear()
     session['current_exam_qids'] = q_ids
     session['total_score'] = 0
@@ -177,8 +176,7 @@ def start_exam_set(set_id):
     return redirect(url_for('take_exam', q_index=0))
 
 
-# --- এই রুটগুলোতে কোনো পরিবর্তন দরকার নেই ---
-# ... (take_exam এবং results ফাংশন আগের মতোই থাকবে) ...
+## 📝 মূল পরীক্ষার পেজ (AJAX সহ)
 @app.route('/exam/<int:q_index>', methods=['GET', 'POST'])
 def take_exam(q_index):
     if 'current_exam_qids' not in session:
@@ -258,10 +256,10 @@ def take_exam(q_index):
         flash(f"Question with ID {current_q_id} not found. Skipping.", "warning")
         return redirect(url_for('take_exam', q_index=q_index + 1))
 
-    # পরবর্তী প্রশ্নে যাওয়ার আগে আগের প্রশ্নের 'answered' ফ্ল্যাগ মুছে ফেলা
     if q_index > 0:
         prev_q_id = q_ids[q_index - 1]
         session.pop(f'q_{prev_q_id}_answered', None)
+        session.pop(f'q_{prev_q_id}_disabled', None) # <-- এটিও ক্লিয়ার করা ভালো
 
     attempts_key = f'q_{current_q_id}_attempts'
     disabled_key = f'q_{current_q_id}_disabled'
@@ -283,9 +281,9 @@ def take_exam(q_index):
                            total_score=total_score
                           )
 
+## 📊 রেজাল্ট পেজ
 @app.route('/results')
 def results():
-    # ... (এই কোডটি আগের মতোই থাকবে)
     if 'current_exam_qids' not in session:
         flash("No results to display. Start an exam first.", "warning")
         return redirect(url_for('home'))
@@ -311,10 +309,9 @@ def results():
                            total_score=total_score,
                            full_results=full_results)
 
+
 # --- অ্যাপ রান করা ---
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(host='0.0.0.0', port=8080)
-
-
