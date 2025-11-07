@@ -11,7 +11,7 @@ app.config['SECRET_KEY'] = 'your_very_secret_key_12345_replit'
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mcq_app.db'
 
 # নতুন PostgreSQL URI যোগ করা হলো
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://templates_8dtu_user:OknsdWCRY1zCLvxnmv19ssSxbTdhA3KP@dpg-d46l10hr0fns73fp0j30-a/templates_8dtu'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://templates_o2y5_user:uKSnasMlaORMcq682TQCEkeQKtsUTVtB@dpg-d46l8dhr0fns73fp5dug-a/templates_o2y5'
 
 # Render-এ অনেক সময় এই সেটিংসটি দরকার হয়
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
